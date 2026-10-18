@@ -444,8 +444,9 @@ export default function ReaderPage() {
           }}
         >
           {paragraphs.map((tokensInPara, pIdx) => (
-            <p
+            <div
               key={pIdx}
+              role="paragraph"
               className="mb-6 text-justify select-text relative"
               style={{ textIndent: '2em', letterSpacing: '0.04em' }}
             >
@@ -524,7 +525,7 @@ export default function ReaderPage() {
                   passageContext={passage.text}
                 />
               )}
-            </p>
+            </div>
           ))}
         </main>
       </div>

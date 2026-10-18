@@ -89,7 +89,7 @@ export function MarkToolbar({
         <span className="hidden sm:inline">Peek</span>
       </button>
 
-      <div className="w-[1px] h-3.5 bg-[var(--border)] my-auto" />
+      <span className="w-[1px] h-3.5 bg-[var(--border)] my-auto inline-block" />
 
       <button
         type="button"
@@ -115,7 +115,7 @@ export function MarkToolbar({
 
       {canSplit && (
         <>
-          <div className="w-[1px] h-3.5 bg-[var(--border)] my-auto" />
+          <span className="w-[1px] h-3.5 bg-[var(--border)] my-auto inline-block" />
           <button
             type="button"
             onClick={onSplit}
@@ -128,7 +128,7 @@ export function MarkToolbar({
         </>
       )}
 
-      <div className="w-[1px] h-3.5 bg-[var(--border)] my-auto" />
+      <span className="w-[1px] h-3.5 bg-[var(--border)] my-auto inline-block" />
 
       <button
         type="button"
