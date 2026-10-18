@@ -1,0 +1,16 @@
+{
+  "name": "Bamboo 竹",
+  "short_name": "Bamboo",
+  "description": "Learn Chinese through reading with 3-pass flow and FSRS spaced repetition.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F7F3EA",
+  "theme_color": "#3F7D58",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

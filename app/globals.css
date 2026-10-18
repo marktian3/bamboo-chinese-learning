@@ -1,0 +1,115 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #F7F3EA;
+  --surface: #FFFDF8;
+  --surface-hover: #F0EADC;
+  --border: #E4DCCB;
+  --ink: #1E1D1A;
+  --ink-muted: #6A655B;
+  --ink-faint: #A8A193;
+  --primary: #3F7D58;
+  --primary-hover: #33684A;
+  --primary-tint: #E2EEE5;
+  --mark: #C2412D;
+  --mark-bg: #F7DDD5;
+  --peek: #B7862A;
+  --peek-bg: #F6EACB;
+  --danger: #B3261E;
+  --focus: rgba(63, 125, 88, 0.5);
+
+  --tone-1: #D0443A;
+  --tone-2: #D3851C;
+  --tone-3: #3B9455;
+  --tone-4: #3468BE;
+  --tone-5: #8A857B;
+}
+
+[data-theme="dark"] {
+  --bg: #151719;
+  --surface: #1D2023;
+  --surface-hover: #262A2E;
+  --border: #2F3337;
+  --ink: #ECE7DC;
+  --ink-muted: #A29C90;
+  --ink-faint: #5F5A52;
+  --primary: #6DB488;
+  --primary-hover: #82C49B;
+  --primary-tint: #1F3328;
+  --mark: #E8705B;
+  --mark-bg: rgba(232, 112, 91, 0.18);
+  --peek: #E2B65A;
+  --peek-bg: rgba(226, 182, 90, 0.16);
+  --danger: #F2867D;
+  --focus: rgba(109, 180, 136, 0.6);
+
+  --tone-1: #F07A6E;
+  --tone-2: #F0AE55;
+  --tone-3: #6CC487;
+  --tone-4: #78A5EE;
+  --tone-5: #9E988C;
+}
+
+@theme {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-tint: var(--primary-tint);
+  --color-mark: var(--mark);
+  --color-mark-bg: var(--mark-bg);
+  --color-peek: var(--peek);
+  --color-peek-bg: var(--peek-bg);
+  --color-danger: var(--danger);
+  --color-focus: var(--focus);
+
+  --color-tone-1: var(--tone-1);
+  --color-tone-2: var(--tone-2);
+  --color-tone-3: var(--tone-3);
+  --color-tone-4: var(--tone-4);
+  --color-tone-5: var(--tone-5);
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ruby typography styles */
+ruby {
+  ruby-position: over;
+  ruby-align: center;
+}
+
+rt {
+  font-family: var(--font-inter), sans-serif;
+  font-size: 0.44em;
+  font-weight: 400;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Custom scrollbars that match the calm paper feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-faint);
+}
