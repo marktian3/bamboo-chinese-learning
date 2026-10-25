@@ -43,10 +43,13 @@ export async function loadDictionary(): Promise<Map<string, DictEntry>> {
           entriesToPersist.push(entry);
         }
 
-        // Cache in Dexie asynchronously
+        // Cache in Dexie asynchronously in chunks
         try {
           if (entriesToPersist.length > 0) {
-            await db.dict.bulkPut(entriesToPersist);
+            const CHUNK_SIZE = 10000;
+            for (let i = 0; i < entriesToPersist.length; i += CHUNK_SIZE) {
+              await db.dict.bulkPut(entriesToPersist.slice(i, i + CHUNK_SIZE));
+            }
           }
         } catch {
           // ignore cache error

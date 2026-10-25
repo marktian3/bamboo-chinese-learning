@@ -70,9 +70,11 @@ const ESSENTIAL_DICT: Record<string, { pinyin: string; definitions: string[] }> 
 };
 
 function parseCedictLine(line: string) {
+  const trimmed = line.trim();
+  if (!trimmed || trimmed.startsWith('#')) return null;
   // CC-CEDICT format:
   // Traditional Simplified [pinyin] /def 1/def 2/
-  const match = line.match(/^(\S+)\s+(\S+)\s+\[(.*?)\]\s+\/(.*)\/$/);
+  const match = trimmed.match(/^(\S+)\s+(\S+)\s+\[(.*?)\]\s+\/(.*)\/$/);
   if (!match) return null;
   const [, traditional, simplified, pinyin, defs] = match;
   const definitions = defs.split('/').filter(d => d.trim().length > 0);
@@ -90,29 +92,16 @@ async function buildDict() {
   const CEDICT_URL = 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz';
 
   try {
-    const buffer = await new Promise<Buffer>((resolve, reject) => {
-      const req = https.get(CEDICT_URL, res => {
-        if (res.statusCode !== 200) {
-          reject(new Error(`HTTP ${res.statusCode}`));
-          return;
-        }
-        const chunks: Buffer[] = [];
-        res.on('data', chunk => chunks.push(chunk));
-        res.on('end', () => resolve(Buffer.concat(chunks)));
-      });
-      req.on('error', reject);
-      req.setTimeout(8000, () => {
-        req.destroy();
-        reject(new Error('Timeout downloading CC-CEDICT'));
-      });
-    });
+    const res = await fetch(CEDICT_URL, { signal: AbortSignal.timeout(45000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const arrayBuffer = await res.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
     const decompressed = zlib.gunzipSync(buffer).toString('utf-8');
     const lines = decompressed.split('\n');
     let count = 0;
-    for (const line of lines) {
-      if (line.startsWith('#') || !line.trim()) continue;
-      const parsed = parseCedictLine(line);
+    for (const rawLine of lines) {
+      const parsed = parseCedictLine(rawLine);
       if (parsed) {
         dict[parsed.simplified] = {
           pinyin: parsed.pinyin,
@@ -122,8 +111,8 @@ async function buildDict() {
       }
     }
     console.log(`Parsed ${count} entries from CC-CEDICT!`);
-  } catch {
-    console.log('Network download of CC-CEDICT skipped/failed, using bundled starter vocabulary.');
+  } catch (err) {
+    console.warn('Network download of CC-CEDICT skipped/failed:', err);
   }
 
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(dict));
