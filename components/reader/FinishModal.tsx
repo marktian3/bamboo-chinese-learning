@@ -8,7 +8,6 @@ interface FinishModalProps {
   charCount: number;
   newWordsCount: number;
   reviewSoonerCount: number;
-  inferStats: { knew: number; partial: number; none: number };
   onClose: () => void;
   onConfirmFinish: () => Promise<void>;
 }
@@ -17,7 +16,6 @@ export function FinishModal({
   charCount,
   newWordsCount,
   reviewSoonerCount,
-  inferStats,
   onClose,
   onConfirmFinish,
 }: FinishModalProps) {
@@ -68,12 +66,6 @@ export function FinishModal({
               <span className="font-mono font-bold">{reviewSoonerCount}</span>
             </div>
           )}
-          <div className="flex justify-between items-center text-[var(--ink-muted)] pt-2 border-t border-[var(--border)]">
-            <span>Inference checks:</span>
-            <span>
-              Guessed {inferStats.knew} · Partly {inferStats.partial} · ✗ {inferStats.none}
-            </span>
-          </div>
         </div>
 
         {/* Action Buttons */}

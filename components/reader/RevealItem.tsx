@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { type Mark, type GlossItem, type Word } from '@/lib/db';
-import { Volume2, Sparkles, AlertCircle } from 'lucide-react';
+import { Volume2, AlertCircle } from 'lucide-react';
 import { speakChinese } from '@/lib/tts/speak';
 import { parsePinyinSyllables, getToneColor } from '@/lib/dict/pinyin';
 import { cn } from '@/lib/utils';
@@ -12,10 +12,8 @@ interface RevealItemProps {
   passageText: string;
   glossItem?: GlossItem | null;
   existingWord?: Word | null;
-  isExpanded: boolean;
   isSelected: boolean;
-  onToggleExpand: () => void;
-  onRate: (rating: 'knew' | 'partial' | 'none') => void;
+  onSelect: () => void;
   onToggleAddToBank: (checked: boolean) => void;
   onApplySegmentation?: (suggested: string) => void;
   onHover: (hovered: boolean) => void;
@@ -29,10 +27,8 @@ export function RevealItem({
   passageText,
   glossItem,
   existingWord,
-  isExpanded,
   isSelected,
-  onToggleExpand,
-  onRate,
+  onSelect,
   onToggleAddToBank,
   onApplySegmentation,
   onHover,
@@ -59,10 +55,11 @@ export function RevealItem({
 
   return (
     <div
+      onClick={onSelect}
       onMouseEnter={() => onHover(true)}
       onMouseLeave={() => onHover(false)}
       className={cn(
-        'p-4 rounded-xl border transition-all text-xs space-y-3 bg-[var(--surface)]',
+        'p-4 rounded-xl border transition-all text-xs space-y-3 bg-[var(--surface)] cursor-pointer',
         isSelected ? 'border-[var(--primary)] ring-1 ring-[var(--primary)] shadow-sm' : 'border-[var(--border)]',
         'hover:border-[var(--primary)]/50'
       )}
@@ -129,135 +126,82 @@ export function RevealItem({
         </div>
       )}
 
-      {/* Collapsed view: Tap to reveal placeholder */}
-      {!isExpanded ? (
-        <button
-          onClick={onToggleExpand}
-          className="w-full py-3 rounded-lg border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] text-[var(--ink-muted)] hover:text-[var(--primary)] font-medium text-center transition flex items-center justify-center gap-2 group"
-        >
-          <Sparkles className="w-4 h-4 text-[var(--ink-faint)] group-hover:text-[var(--primary)]" />
-          <span>Tap to reveal (Space)</span>
-        </button>
-      ) : (
-        /* Expanded view */
-        <div className="space-y-3 pt-2 border-t border-[var(--border)] animate-in fade-in duration-150">
-          {/* Pinyin and Audio */}
-          <div className="flex items-center justify-between">
-            <div className="flex flex-wrap gap-1 font-serif text-base font-semibold">
-              {syllables.map((s, idx) => (
-                <span
-                  key={idx}
-                  style={{
-                    color: toneColorsEnabled ? getToneColor(s.tone) : 'var(--ink)',
-                  }}
-                >
-                  {s.syllable}
-                </span>
-              ))}
-            </div>
-            <button
-              onClick={handlePlayAudio}
-              className="p-1 rounded text-[var(--ink-muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-hover)]"
-              title="Play pronunciation"
-            >
-              <Volume2 className="w-4 h-4" />
-            </button>
-          </div>
-
-          {/* Short Gloss */}
-          <div className="text-sm font-bold text-[var(--ink)] leading-snug">
-            {glossItem?.gloss || 'Loading definition...'}
-          </div>
-
-          {/* In Context Explanation */}
-          {glossItem?.inContext && (
-            <div className="text-xs text-[var(--ink)] leading-relaxed bg-[var(--bg)] p-2.5 rounded-lg border border-[var(--border)]">
-              <span className="font-semibold text-[var(--ink-muted)]">Here: </span>
-              {glossItem.inContext}
-            </div>
-          )}
-
-          {/* Per-character breakdown */}
-          {glossItem?.breakdown && glossItem.breakdown.length > 0 && (
-            <div className="flex flex-wrap gap-2 text-xs text-[var(--ink-muted)]">
-              {glossItem.breakdown.map((b, idx) => (
-                <span key={idx} className="flex items-center gap-1 bg-[var(--surface-hover)] px-2 py-0.5 rounded">
-                  <strong className="text-[var(--ink)] font-serif">{b.char}</strong>
-                  <span>{b.meaning}</span>
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Meta Chips: POS, Register, Type */}
-          <div className="flex flex-wrap gap-1.5 text-[11px]">
-            {glossItem?.pos && (
-              <span className="px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--ink-muted)] font-medium">
-                {glossItem.pos}
-              </span>
-            )}
-            {glossItem?.register && (
-              <span className="px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--ink-muted)] font-medium">
-                {glossItem.register}
-              </span>
-            )}
-            {glossItem?.type && (
-              <span className="px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--ink-muted)] font-medium">
-                {glossItem.type}
-              </span>
-            )}
-          </div>
-
-          {/* Note */}
-          {glossItem?.note && (
-            <p className="text-xs text-[var(--ink-muted)] italic leading-relaxed">
-              Note: {glossItem.note}
-            </p>
-          )}
-
-          {/* Self-Rating Verification (§6.4) */}
-          <div className="pt-2 border-t border-[var(--border)] space-y-1.5">
-            <span className="text-[11px] font-semibold text-[var(--ink-muted)]">
-              How did you do?
-            </span>
-            <div className="flex gap-2">
-              <button
-                onClick={() => onRate('knew')}
-                className={cn(
-                  'flex-1 py-1 rounded text-xs font-medium border transition',
-                  mark.inferResult === 'knew'
-                    ? 'border-[var(--primary)] bg-[var(--primary-tint)] text-[var(--primary)] font-bold'
-                    : 'border-[var(--border)] bg-[var(--bg)] text-[var(--ink)] hover:bg-[var(--surface-hover)]'
-                )}
+      {/* Definition & Details */}
+      <div className="space-y-3 pt-2 border-t border-[var(--border)]">
+        {/* Pinyin and Audio */}
+        <div className="flex items-center justify-between">
+          <div className="flex flex-wrap gap-1 font-serif text-base font-semibold">
+            {syllables.map((s, idx) => (
+              <span
+                key={idx}
+                style={{
+                  color: toneColorsEnabled ? getToneColor(s.tone) : 'var(--ink)',
+                }}
               >
-                Guessed it (1)
-              </button>
-              <button
-                onClick={() => onRate('partial')}
-                className={cn(
-                  'flex-1 py-1 rounded text-xs font-medium border transition',
-                  mark.inferResult === 'partial'
-                    ? 'border-[var(--peek)] bg-[var(--peek-bg)] text-[var(--peek)] font-bold'
-                    : 'border-[var(--border)] bg-[var(--bg)] text-[var(--ink)] hover:bg-[var(--surface-hover)]'
-                )}
-              >
-                Partly (2)
-              </button>
-              <button
-                onClick={() => onRate('none')}
-                className={cn(
-                  'flex-1 py-1 rounded text-xs font-medium border transition',
-                  mark.inferResult === 'none'
-                    ? 'border-[var(--danger)] bg-[var(--mark-bg)] text-[var(--danger)] font-bold'
-                    : 'border-[var(--border)] bg-[var(--bg)] text-[var(--ink)] hover:bg-[var(--surface-hover)]'
-                )}
-              >
-                No idea (3)
-              </button>
-            </div>
+                {s.syllable}
+              </span>
+            ))}
           </div>
+          <button
+            onClick={handlePlayAudio}
+            className="p-1 rounded text-[var(--ink-muted)] hover:text-[var(--primary)] hover:bg-[var(--surface-hover)]"
+            title="Play pronunciation"
+          >
+            <Volume2 className="w-4 h-4" />
+          </button>
         </div>
-      )}
+
+        {/* Short Gloss */}
+        <div className="text-sm font-bold text-[var(--ink)] leading-snug">
+          {glossItem?.gloss || 'Loading definition...'}
+        </div>
+
+        {/* In Context Explanation */}
+        {glossItem?.inContext && (
+          <div className="text-xs text-[var(--ink)] leading-relaxed bg-[var(--bg)] p-2.5 rounded-lg border border-[var(--border)]">
+            <span className="font-semibold text-[var(--ink-muted)]">Here: </span>
+            {glossItem.inContext}
+          </div>
+        )}
+
+        {/* Per-character breakdown */}
+        {glossItem?.breakdown && glossItem.breakdown.length > 0 && (
+          <div className="flex flex-wrap gap-2 text-xs text-[var(--ink-muted)]">
+            {glossItem.breakdown.map((b, idx) => (
+              <span key={idx} className="flex items-center gap-1 bg-[var(--surface-hover)] px-2 py-0.5 rounded">
+                <strong className="text-[var(--ink)] font-serif">{b.char}</strong>
+                <span>{b.meaning}</span>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Meta Chips: POS, Register, Type */}
+        <div className="flex flex-wrap gap-1.5 text-[11px]">
+          {glossItem?.pos && (
+            <span className="px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--ink-muted)] font-medium">
+              {glossItem.pos}
+            </span>
+          )}
+          {glossItem?.register && (
+            <span className="px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--ink-muted)] font-medium">
+              {glossItem.register}
+            </span>
+          )}
+          {glossItem?.type && (
+            <span className="px-2 py-0.5 rounded bg-[var(--surface-hover)] text-[var(--ink-muted)] font-medium">
+              {glossItem.type}
+            </span>
+          )}
+        </div>
+
+        {/* Note */}
+        {glossItem?.note && (
+          <p className="text-xs text-[var(--ink-muted)] italic leading-relaxed">
+            Note: {glossItem.note}
+          </p>
+        )}
+      </div>
     </div>
   );
 }

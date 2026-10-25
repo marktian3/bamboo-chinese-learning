@@ -394,15 +394,6 @@ export default function ReaderPage() {
   // Summary counts for finish modal
   const newWordsCount = marks.filter(m => m.addToBank && !wordsMap.has(m.surface)).length;
   const reviewSoonerCount = marks.filter(m => m.addToBank && wordsMap.has(m.surface)).length;
-  const inferStats = marks.reduce(
-    (acc, m) => {
-      if (m.inferResult === 'knew') acc.knew++;
-      else if (m.inferResult === 'partial') acc.partial++;
-      else if (m.inferResult === 'none') acc.none++;
-      return acc;
-    },
-    { knew: 0, partial: 0, none: 0 }
-  );
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--ink)]">
@@ -664,7 +655,6 @@ export default function ReaderPage() {
           charCount={passage.text.length}
           newWordsCount={newWordsCount}
           reviewSoonerCount={reviewSoonerCount}
-          inferStats={inferStats}
           onClose={() => setShowFinishModal(false)}
           onConfirmFinish={handleConfirmFinish}
         />

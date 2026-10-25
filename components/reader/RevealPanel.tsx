@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { type Mark, type GlossItem, type Word } from '@/lib/db';
 import { RevealItem } from './RevealItem';
-import { Sparkles, ArrowRight, AlertCircle, Maximize2, Minimize2, X } from 'lucide-react';
+import { ArrowRight, AlertCircle, Maximize2, Minimize2, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface RevealPanelProps {
@@ -43,25 +43,9 @@ export function RevealPanel({
   ttsVoice,
   ttsSpeed,
 }: RevealPanelProps) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [isMaximized, setIsMaximized] = useState(false);
 
-  const handleRevealAll = React.useCallback(() => {
-    setExpandedIds(new Set(marks.map(m => m.id)));
-  }, [marks]);
-
-  const handleToggleExpand = (id: string) => {
-    setExpandedIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-    onSelectMark(id);
-  };
-
-  // Keyboard navigation (§6.4):
-  // J/K next/prev item, Space reveal current, 1/2/3 self-rate, A toggle add, R reveal all
+  // Keyboard navigation: J/K next/prev item, A toggle add to bank
   useEffect(() => {
     if (!isOpen || marks.length === 0) return;
 
@@ -81,34 +65,17 @@ export function RevealPanel({
       } else if (e.key === 'k' || e.key === 'K') {
         const prevIdx = Math.max(0, currentIndex - 1);
         onSelectMark(marks[prevIdx].id);
-      } else if (e.key === ' ' && selectedMarkId) {
-        e.preventDefault();
-        setExpandedIds(prev => {
-          const next = new Set(prev);
-          if (next.has(selectedMarkId)) next.delete(selectedMarkId);
-          else next.add(selectedMarkId);
-          return next;
-        });
-      } else if (['1', '2', '3'].includes(e.key) && selectedMarkId) {
-        const rateMap: Record<string, 'knew' | 'partial' | 'none'> = {
-          '1': 'knew',
-          '2': 'partial',
-          '3': 'none',
-        };
-        onUpdateMark(selectedMarkId, { inferResult: rateMap[e.key] });
       } else if ((e.key === 'a' || e.key === 'A') && selectedMarkId) {
         const target = marks.find(m => m.id === selectedMarkId);
         if (target) {
           onUpdateMark(selectedMarkId, { addToBank: !target.addToBank });
         }
-      } else if (e.key === 'r' || e.key === 'R') {
-        handleRevealAll();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, marks, selectedMarkId, handleRevealAll, onSelectMark, onUpdateMark]);
+  }, [isOpen, marks, selectedMarkId, onSelectMark, onUpdateMark]);
 
   if (!isOpen) return null;
 
@@ -135,20 +102,11 @@ export function RevealPanel({
         <div className="p-4 border-b border-[var(--border)] flex items-center justify-between shrink-0 bg-[var(--surface)]">
           <div className="flex items-center gap-2">
             <span className="font-bold text-base text-[var(--ink)]">
-              {marks.length} {marks.length === 1 ? 'word' : 'words'}
+              {marks.length} marked {marks.length === 1 ? 'word' : 'words'}
             </span>
-            <span className="text-xs text-[var(--ink-muted)]">to verify</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleRevealAll}
-              className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[var(--surface-hover)] hover:bg-[var(--border)] text-[var(--ink)] transition flex items-center gap-1"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-[var(--primary)]" />
-              <span>Reveal all (R)</span>
-            </button>
-
             <button
               onClick={() => setIsMaximized(!isMaximized)}
               className="hidden lg:flex p-1.5 rounded-lg text-[var(--ink-muted)] hover:text-[var(--ink)] hover:bg-[var(--surface-hover)]"
@@ -182,7 +140,6 @@ export function RevealPanel({
           {marks.map(mark => {
             const gloss = glosses.get(mark.id);
             const existingWord = wordsMap.get(mark.surface);
-            const isExpanded = expandedIds.has(mark.id) || selectedMarkId === mark.id;
             const isSelected = selectedMarkId === mark.id;
 
             return (
@@ -192,10 +149,8 @@ export function RevealPanel({
                 passageText={passageText}
                 glossItem={gloss}
                 existingWord={existingWord}
-                isExpanded={isExpanded}
                 isSelected={isSelected}
-                onToggleExpand={() => handleToggleExpand(mark.id)}
-                onRate={rating => onUpdateMark(mark.id, { inferResult: rating })}
+                onSelect={() => onSelectMark(mark.id)}
                 onToggleAddToBank={checked => onUpdateMark(mark.id, { addToBank: checked })}
                 onApplySegmentation={suggested => onApplySegmentation?.(mark.id, suggested)}
                 onHover={hovered => onHoverMark(hovered ? mark.id : null)}
