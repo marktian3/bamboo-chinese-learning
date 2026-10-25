@@ -108,7 +108,7 @@ export default function SettingsPage() {
 
   const handleDeleteAll = async () => {
     if (deleteConfirm !== 'DELETE') return;
-    await db.transaction('rw', [db.passages, db.marks, db.words, db.contexts, db.cards, db.reviewLogs, db.glossCache, db.translationCache], async () => {
+    await db.transaction('rw', [db.passages, db.marks, db.words, db.contexts, db.cards, db.reviewLogs, db.glossCache, db.translationCache, db.dict], async () => {
       await db.passages.clear();
       await db.marks.clear();
       await db.words.clear();
@@ -117,6 +117,7 @@ export default function SettingsPage() {
       await db.reviewLogs.clear();
       await db.glossCache.clear();
       await db.translationCache.clear();
+      await db.dict.clear();
     });
     setDeleteConfirm('');
     alert('All passages, words, and review history have been wiped.');

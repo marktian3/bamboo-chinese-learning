@@ -59,13 +59,13 @@ export async function fetchGlossesForMarks(
 
   const marksNeedingFetch: Mark[] = [];
 
-  // 1. Check local cache first
+  // 1. Check local LLM cache first
   for (const mark of marks) {
     const fullKey = mark.glossKey || getGlossCacheKey(mark.surface, mark.surface);
 
     if (!options.forceRefresh) {
       const cached = await db.glossCache.get(fullKey);
-      if (cached) {
+      if (cached && !cached.data.isDictionaryFallback) {
         result.set(mark.id, cached.data);
         continue;
       }
@@ -77,13 +77,11 @@ export async function fetchGlossesForMarks(
     return result;
   }
 
-  // 2. If no API key is provided, use offline dictionary fallback
+  // 2. If no API key is provided, use offline dictionary fallback (do not persist in LLM glossCache)
   if (!hasKey) {
     for (const mark of marksNeedingFetch) {
       const fallback = await buildDictionaryFallbackGloss(mark.surface);
       result.set(mark.id, fallback);
-      const key = getGlossCacheKey(mark.surface, mark.surface);
-      await db.glossCache.put({ key, data: fallback, createdAt: Date.now() });
     }
     return result;
   }

@@ -1,74 +1,75 @@
 import { db, type DictEntry, type GlossItem } from '@/lib/db';
 import { getWordPinyin } from './pinyin';
 
-let memoryDictCache: Map<string, DictEntry> | null = null;
-let loadPromise: Promise<Map<string, DictEntry>> | null = null;
+let memoryDictFallback: Map<string, DictEntry> | null = null;
+let initPromise: Promise<void> | null = null;
 
-export async function loadDictionary(): Promise<Map<string, DictEntry>> {
-  if (memoryDictCache) return memoryDictCache;
-  if (loadPromise) return loadPromise;
+/**
+ * Ensures the dictionary is populated in IndexedDB (`db.dict`).
+ * Falls back to an in-memory Map only if IndexedDB is unavailable (e.g. SSR or test environments).
+ */
+export async function ensureDictionaryLoaded(): Promise<void> {
+  if (initPromise) return initPromise;
 
-  loadPromise = (async () => {
-    const map = new Map<string, DictEntry>();
-
-    // 1. Check Dexie dict table
+  initPromise = (async () => {
     try {
       const count = await db.dict.count();
       if (count > 0) {
-        const entries = await db.dict.toArray();
-        for (const e of entries) {
-          map.set(e.key, e);
-        }
-        memoryDictCache = map;
-        return map;
+        return;
       }
     } catch {
-      // IndexedDB might not be available during SSR or testing
+      // IndexedDB unavailable; will use memoryDictFallback below
     }
 
-    // 2. Fetch from static public/dict/cedict.json
     try {
       const res = await fetch('/dict/cedict.json');
-      if (res.ok) {
-        const raw = await res.json() as Record<string, { pinyin: string; definitions: string[] }>;
-        const entriesToPersist: DictEntry[] = [];
+      if (!res.ok) return;
 
-        for (const [key, val] of Object.entries(raw)) {
-          const entry: DictEntry = {
-            key,
-            pinyin: val.pinyin,
-            definitions: val.definitions,
-          };
-          map.set(key, entry);
-          entriesToPersist.push(entry);
-        }
+      const raw = (await res.json()) as Record<string, { pinyin: string; definitions: string[] }>;
+      const entriesToPersist: DictEntry[] = [];
 
-        // Cache in Dexie asynchronously in chunks
-        try {
-          if (entriesToPersist.length > 0) {
-            const CHUNK_SIZE = 10000;
-            for (let i = 0; i < entriesToPersist.length; i += CHUNK_SIZE) {
-              await db.dict.bulkPut(entriesToPersist.slice(i, i + CHUNK_SIZE));
-            }
+      for (const [key, val] of Object.entries(raw)) {
+        entriesToPersist.push({
+          key,
+          pinyin: val.pinyin,
+          definitions: val.definitions,
+        });
+      }
+
+      try {
+        if (entriesToPersist.length > 0) {
+          const CHUNK_SIZE = 10000;
+          for (let i = 0; i < entriesToPersist.length; i += CHUNK_SIZE) {
+            await db.dict.bulkPut(entriesToPersist.slice(i, i + CHUNK_SIZE));
           }
-        } catch {
-          // ignore cache error
         }
+      } catch {
+        // IndexedDB write failed or unavailable; populate in-memory fallback
+        const map = new Map<string, DictEntry>();
+        for (const entry of entriesToPersist) {
+          map.set(entry.key, entry);
+        }
+        memoryDictFallback = map;
       }
     } catch {
-      // ignore network fetch error
+      // Ignore network fetch error
     }
-
-    memoryDictCache = map;
-    return map;
   })();
 
-  return loadPromise;
+  return initPromise;
 }
 
 export async function lookupDictionary(word: string): Promise<DictEntry | null> {
-  const dict = await loadDictionary();
-  return dict.get(word) || null;
+  await ensureDictionaryLoaded();
+
+  try {
+    const entry = await db.dict.get(word);
+    if (entry) return entry;
+  } catch {
+    // IndexedDB unavailable
+  }
+
+  return memoryDictFallback?.get(word) || null;
 }
 
 /**
@@ -78,8 +79,7 @@ export async function buildDictionaryFallbackGloss(
   word: string,
   sentence?: string
 ): Promise<GlossItem> {
-  const dict = await loadDictionary();
-  const entry = dict.get(word);
+  const entry = await lookupDictionary(word);
 
   const wordPinyin = getWordPinyin(word, sentence);
   const gloss = entry && entry.definitions.length > 0
@@ -88,7 +88,7 @@ export async function buildDictionaryFallbackGloss(
 
   const breakdown: { char: string; meaning: string }[] = [];
   for (const char of word) {
-    const charEntry = dict.get(char);
+    const charEntry = await lookupDictionary(char);
     breakdown.push({
       char,
       meaning: charEntry && charEntry.definitions.length > 0

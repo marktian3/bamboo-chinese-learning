@@ -99,11 +99,12 @@ export default function ReaderPage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [passage, passageId]);
 
-  // Background prefetch (§6.3): after 3s idle with >= 1 mark, fetch glosses silently
+  // Background prefetch (§6.3): when reveal is open fetch immediately; otherwise after 3s idle
   useEffect(() => {
     if (!passage || marks.length === 0) return;
 
     if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
+    const delay = isRevealOpen ? 0 : 3000;
     idleTimerRef.current = setTimeout(async () => {
       try {
         const fetched = await fetchGlossesForMarks(passage, marks);
@@ -111,12 +112,12 @@ export default function ReaderPage() {
       } catch {
         // silent prefetch error
       }
-    }, 3000);
+    }, delay);
 
     return () => {
       if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
-  }, [passage, marks]);
+  }, [passage, marks, isRevealOpen]);
 
   // Marks map by start offset for fast lookup
   const marksByStart = useMemo(() => {
