@@ -1,11 +1,14 @@
 import { db, type DictEntry, type GlossItem } from '@/lib/db';
 import { getWordPinyin } from './pinyin';
 
+const DICT_VERSION = '1';
+const DICT_VERSION_KEY = '__version__';
+
 let memoryDictFallback: Map<string, DictEntry> | null = null;
 let initPromise: Promise<void> | null = null;
 
 /**
- * Ensures the dictionary is populated in IndexedDB (`db.dict`).
+ * Ensures the dictionary is populated in IndexedDB (`db.dict`) at the current DICT_VERSION.
  * Falls back to an in-memory Map only if IndexedDB is unavailable (e.g. SSR or test environments).
  */
 export async function ensureDictionaryLoaded(): Promise<void> {
@@ -13,10 +16,11 @@ export async function ensureDictionaryLoaded(): Promise<void> {
 
   initPromise = (async () => {
     try {
-      const count = await db.dict.count();
-      if (count > 0) {
+      const versionEntry = await db.dict.get(DICT_VERSION_KEY);
+      if (versionEntry?.pinyin === DICT_VERSION) {
         return;
       }
+      await db.dict.clear();
     } catch {
       // IndexedDB unavailable; will use memoryDictFallback below
     }
@@ -42,6 +46,11 @@ export async function ensureDictionaryLoaded(): Promise<void> {
           for (let i = 0; i < entriesToPersist.length; i += CHUNK_SIZE) {
             await db.dict.bulkPut(entriesToPersist.slice(i, i + CHUNK_SIZE));
           }
+          await db.dict.put({
+            key: DICT_VERSION_KEY,
+            pinyin: DICT_VERSION,
+            definitions: [],
+          });
         }
       } catch {
         // IndexedDB write failed or unavailable; populate in-memory fallback
